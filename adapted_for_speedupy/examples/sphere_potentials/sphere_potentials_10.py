@@ -12,12 +12,16 @@ def main():
     plates.set_tether_type_prototype(sigma=0, L=L)
     ALPHA = plates.add_tether_type(plate='upper', sticky_end='alpha')
     ALPHA_P = plates.add_tether_type(plate='lower', sticky_end='alphap')
-    hArr = np.linspace(1 * nm, 40 * nm, 40)
-    for S in (0.1, 0.33, 0.66, 1):
+    hArr = np.linspace(1 * nm, 40 * nm, 1000)
+
+    S_values = np.arange(0.1, 1.01, 0.01)
+    for S in S_values:
         sigma = 1 / (S * L) ** 2
         plates.tether_types[ALPHA]['sigma'] = sigma
         plates.tether_types[ALPHA_P]['sigma'] = sigma
-        for betaDeltaG0 in range(-7, -2):
+
+        beta_values = np.arange(-12, 1, 0.5)
+        for betaDeltaG0 in beta_values:
             plates.beta_DeltaG0['alpha', 'alphap'] = betaDeltaG0
             temp3 = [plates.at(h) for h in hArr]
             betaFPlate = [h.free_energy_density for h in temp3]
@@ -29,7 +33,9 @@ def main():
                     betaFRep = temp4.rep_free_energy_density
                     betaFAtt = V - betaFRep
                     f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (h / L, betaFRep / (1 / L ** 2), betaFAtt / (1 / L ** 2), (betaFRep + betaFAtt) / (1 / L ** 2)))
-            for R in (6.7, 25.0):
+
+            R_values = np.linspace(4.0, 50.0, 30)  # or up to 100 with more points if desired
+            for R in R_values:
                 betaFSphere = calc_spheres_potential(hArr, betaFPlate, R * L)
                 with open('spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0), 'w') as f:
                     temp2 = '\t'

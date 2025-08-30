@@ -13,6 +13,22 @@ def f1(hArr, betaFPlate, R, L):
     betaFSphere = calc_spheres_potential(hArr, betaFPlate, R * L)
     return [[h / L, 0, 0, V] for (h, V) in zip(hArr, betaFSphere)]
 
+@deterministic
+def f2(plates, betaDeltaG0, hArr, L):
+    plates.beta_DeltaG0['alpha', 'alphap'] = betaDeltaG0
+    betaFPlate = []
+    for h in hArr:
+        aux = plates.at(h)
+        betaFPlate.append(aux.free_energy_density)
+
+    data = []
+    for (h, V) in zip(hArr, betaFPlate):
+        temp4 = plates.at(h)
+        betaFRep = temp4.rep_free_energy_density
+        betaFAtt = V - betaFRep
+        data.append([h / L, betaFRep / (1 / L ** 2), betaFAtt / (1 / L ** 2), (betaFRep + betaFAtt) / (1 / L ** 2)])
+    return betaFPlate, data
+
 @initialize_speedupy
 def main():
     plates = dnacc.PlatesMeanField()
@@ -26,19 +42,12 @@ def main():
         plates.tether_types[ALPHA]['sigma'] = sigma
         plates.tether_types[ALPHA_P]['sigma'] = sigma
         for betaDeltaG0 in np.arange(-12, 1, 0.5):
-            plates.beta_DeltaG0['alpha', 'alphap'] = betaDeltaG0
-            betaFPlate = []
-            for h in hArr:
-                aux = plates.at(h)
-                betaFPlate.append(aux.free_energy_density)
+            betaFPlate, data2 = f2(plates, betaDeltaG0, hArr, L)
             with open('plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0), 'w') as f:
                 temp1 = '\t'
                 f.write(temp1.join(['h / L', 'F_rep (kT/L^2)', 'F_att (kT/L^2)', 'F_plate (kT/L^2)']) + '\n')
-                for (h, V) in zip(hArr, betaFPlate):
-                    temp4 = plates.at(h)
-                    betaFRep = temp4.rep_free_energy_density
-                    betaFAtt = V - betaFRep
-                    f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (h / L, betaFRep / (1 / L ** 2), betaFAtt / (1 / L ** 2), (betaFRep + betaFAtt) / (1 / L ** 2)))
+                for (v1, v2, v3, v4) in data2:
+                    f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (v1, v2, v3, v4))
             for R in np.linspace(4.0, 50.0, 30):
                 data = f1(hArr, betaFPlate, R, L)
                 with open('spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0), 'w') as f:

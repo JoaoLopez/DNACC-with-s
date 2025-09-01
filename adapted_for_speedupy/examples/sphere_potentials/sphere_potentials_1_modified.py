@@ -14,7 +14,16 @@ def f1(hArr, betaFPlate, R, L):
     return [[h / L, 0, 0, V] for (h, V) in zip(hArr, betaFSphere)]
 
 @deterministic
-def f2(plates, betaDeltaG0, hArr, L):
+def f2(S, betaDeltaG0, hArr, betaFPlate, L):
+    result = {}
+    for R in np.linspace(4.0, 50.0, 30):
+        filename = 'spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0)
+        data = f1(hArr, betaFPlate, R, L)
+        result[filename] = data
+    return result
+
+@deterministic
+def f3(plates, betaDeltaG0, hArr, L):
     plates.beta_DeltaG0['alpha', 'alphap'] = betaDeltaG0
     betaFPlate = []
     for h in hArr:
@@ -29,6 +38,21 @@ def f2(plates, betaDeltaG0, hArr, L):
         data.append([h / L, betaFRep / (1 / L ** 2), betaFAtt / (1 / L ** 2), (betaFRep + betaFAtt) / (1 / L ** 2)])
     return betaFPlate, data
 
+@deterministic
+def f4(S, L, plates, ALPHA, ALPHA_P, hArr):
+    sigma = 1 / (S * L) ** 2
+    plates.tether_types[ALPHA]['sigma'] = sigma
+    plates.tether_types[ALPHA_P]['sigma'] = sigma
+
+    result = {}
+    result2 = {}
+    for betaDeltaG0 in np.arange(-12, 1, 0.5):
+        filename2 = 'plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0)
+        (betaFPlate, data2) = f3(plates, betaDeltaG0, hArr, L)
+        result2[filename2] = data2
+        result.update(f2(S, betaDeltaG0, hArr, betaFPlate, L))
+    return result, result2
+
 @initialize_speedupy
 def main():
     plates = dnacc.PlatesMeanField()
@@ -41,19 +65,9 @@ def main():
     result2 = {}
     result = {}
     for S in np.arange(0.1, 1.01, 0.05):
-        sigma = 1 / (S * L) ** 2
-        plates.tether_types[ALPHA]['sigma'] = sigma
-        plates.tether_types[ALPHA_P]['sigma'] = sigma
-
-        for betaDeltaG0 in np.arange(-12, 1, 0.5):
-            filename2 = 'plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0)
-            betaFPlate, data2 = f2(plates, betaDeltaG0, hArr, L)
-            result2[filename2] = data2
-
-            for R in np.linspace(4.0, 50.0, 30):
-                filename = 'spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0)
-                data = f1(hArr, betaFPlate, R, L)
-                result[filename] = data
+        r, r2 = f4(S, L, plates, ALPHA, ALPHA_P, hArr)
+        result.update(r)
+        result2.update(r2)
 
     for filename, data in result2.items():
         with open(filename, 'w') as f:

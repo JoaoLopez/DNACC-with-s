@@ -9,34 +9,35 @@ from dnacc.units import nm
 import numpy as np
 
 @deterministic
-def f1(hArr, betaFPlate, R, L):
+def f1(R, S, betaDeltaG0, hArr, betaFPlate, L):
+    filename = 'spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0)
     betaFSphere = calc_spheres_potential(hArr, betaFPlate, R * L)
-    return [[h / L, 0, 0, V] for (h, V) in zip(hArr, betaFSphere)]
+    data = [[h / L, 0, 0, V] for (h, V) in zip(hArr, betaFSphere)]
+    return {filename: data}
 
 @deterministic
 def f2(S, betaDeltaG0, hArr, betaFPlate, L):
     result = {}
     for R in np.linspace(4.0, 50.0, 30):
-        filename = 'spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0)
-        data = f1(hArr, betaFPlate, R, L)
-        result[filename] = data
+        result.update(f1(R, S, betaDeltaG0, hArr, betaFPlate, L))
     return result
 
 @deterministic
-def f3(plates, betaDeltaG0, hArr, L):
+def f3(S, plates, betaDeltaG0, hArr, L):
     plates.beta_DeltaG0['alpha', 'alphap'] = betaDeltaG0
     betaFPlate = []
     for h in hArr:
         aux = plates.at(h)
         betaFPlate.append(aux.free_energy_density)
 
+    filename = 'plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0)
     data = []
     for (h, V) in zip(hArr, betaFPlate):
         temp4 = plates.at(h)
         betaFRep = temp4.rep_free_energy_density
         betaFAtt = V - betaFRep
         data.append([h / L, betaFRep / (1 / L ** 2), betaFAtt / (1 / L ** 2), (betaFRep + betaFAtt) / (1 / L ** 2)])
-    return betaFPlate, data
+    return betaFPlate, {filename: data}
 
 @deterministic
 def f4(S, L, plates, ALPHA, ALPHA_P, hArr):
@@ -47,10 +48,19 @@ def f4(S, L, plates, ALPHA, ALPHA_P, hArr):
     result = {}
     result2 = {}
     for betaDeltaG0 in np.arange(-12, 1, 0.5):
-        filename2 = 'plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0)
-        (betaFPlate, data2) = f3(plates, betaDeltaG0, hArr, L)
-        result2[filename2] = data2
+        (betaFPlate, r2) = f3(S, plates, betaDeltaG0, hArr, L)
+        result2.update(r2)
         result.update(f2(S, betaDeltaG0, hArr, betaFPlate, L))
+    return result, result2
+
+@deterministic
+def f5(L, plates, ALPHA, ALPHA_P, hArr):
+    result = {}
+    result2 = {}
+    for S in np.arange(0.1, 1.01, 0.05):
+        r, r2 = f4(S, L, plates, ALPHA, ALPHA_P, hArr)
+        result.update(r)
+        result2.update(r2)
     return result, result2
 
 @initialize_speedupy
@@ -62,12 +72,7 @@ def main():
     ALPHA_P = plates.add_tether_type(plate='lower', sticky_end='alphap')
     hArr = np.linspace(1 * nm, 40 * nm, 1000)
 
-    result2 = {}
-    result = {}
-    for S in np.arange(0.1, 1.01, 0.05):
-        r, r2 = f4(S, L, plates, ALPHA, ALPHA_P, hArr)
-        result.update(r)
-        result2.update(r2)
+    result, result2 = f5(L, plates, ALPHA, ALPHA_P, hArr)
 
     for filename, data in result2.items():
         with open(filename, 'w') as f:

@@ -37,22 +37,35 @@ def main():
     ALPHA = plates.add_tether_type(plate='upper', sticky_end='alpha')
     ALPHA_P = plates.add_tether_type(plate='lower', sticky_end='alphap')
     hArr = np.linspace(1 * nm, 40 * nm, 1000)
+
+    result2 = {}
+    result = {}
     for S in np.arange(0.1, 1.01, 0.05):
         sigma = 1 / (S * L) ** 2
         plates.tether_types[ALPHA]['sigma'] = sigma
         plates.tether_types[ALPHA_P]['sigma'] = sigma
+
         for betaDeltaG0 in np.arange(-12, 1, 0.5):
+            filename2 = 'plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0)
             betaFPlate, data2 = f2(plates, betaDeltaG0, hArr, L)
-            with open('plates-S%0.2f-G%.1f.dat' % (S, betaDeltaG0), 'w') as f:
-                temp1 = '\t'
-                f.write(temp1.join(['h / L', 'F_rep (kT/L^2)', 'F_att (kT/L^2)', 'F_plate (kT/L^2)']) + '\n')
-                for (v1, v2, v3, v4) in data2:
-                    f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (v1, v2, v3, v4))
+            result2[filename2] = data2
+
             for R in np.linspace(4.0, 50.0, 30):
+                filename = 'spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0)
                 data = f1(hArr, betaFPlate, R, L)
-                with open('spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0), 'w') as f:
-                    temp2 = '\t'
-                    f.write(temp2.join(['h / L', '[ignore: F_rep (kT)]', '[ignore: F_att (kT)]', 'F_sphere (kT)']) + '\n')
-                    for (v1, v2, v3, v4) in data:
-                        f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (v1, v2, v3, v4))
+                result[filename] = data
+
+    for filename, data in result2.items():
+        with open(filename, 'w') as f:
+            temp1 = '\t'
+            f.write(temp1.join(['h / L', 'F_rep (kT/L^2)', 'F_att (kT/L^2)', 'F_plate (kT/L^2)']) + '\n')
+            for (v1, v2, v3, v4) in data:
+                f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (v1, v2, v3, v4))
+
+    for filename, data in result.items():
+        with open(filename, 'w') as f:
+            temp2 = '\t'
+            f.write(temp2.join(['h / L', '[ignore: F_rep (kT)]', '[ignore: F_att (kT)]', 'F_sphere (kT)']) + '\n')
+            for (v1, v2, v3, v4) in data:
+                f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (v1, v2, v3, v4))
 main()

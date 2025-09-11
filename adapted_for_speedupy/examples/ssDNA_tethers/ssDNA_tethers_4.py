@@ -47,21 +47,28 @@ def main():
     c1 = 24070.0
     c2 = 70.2964
     zr = 273.15
-    hArr = np.arange(5 * nm, 81 * nm, 1 * nm)
-    for T in (30.5, 32.0, 33.0, 35.0, 36.0, 37.0, 30.0, 31.0, 38.5):
+    hArr = np.arange(1 * nm, 300 * nm, 0.05 * nm)
+    for T in np.linspace(20.0, 60.0, 81):
         beta_DeltaG0 = -(c1 / (zr + T) - c2)
         plates.beta_DeltaG0['alpha', 'alphap'] = beta_DeltaG0
-        temp1 = [plates.at(h) for h in hArr]
-        betaFPlate = [h.free_energy_density for h in temp1]
-        temp2 = [plates.at(h) for h in hArr]
-        betaFRepPlate = [h.rep_free_energy_density for h in temp2]
+        betaFPlate = []
+        for h in hArr:
+            aux = plates.at(h)
+            betaFPlate.append(aux.free_energy_density)
+        betaFRepPlate = []
+        for h in hArr:
+            aux = plates.at(h)
+            betaFRepPlate.append(aux.rep_free_energy_density)
         with open('plates-A_B-T%.1f-G%.1f.txt' % (T, beta_DeltaG0), 'w') as f:
             f.write('# h (nm)\tF_rep (kT/nm^2)\tF_att (kT/nm^2)\tF_plate (kT/nm^2)\n')
             for (h, betaF, betaFRep) in zip(hArr, betaFPlate, betaFRepPlate):
                 betaFAtt = betaF - betaFRep
                 f.write('%g\t%g\t%g\t%g\n' % (h / nm, betaFRep / (1 / nm ** 2), betaFAtt / (1 / nm ** 2), betaF / (1 / nm ** 2)))
-        temp3 = [plates.at(h) for h in hArr]
-        badBetaFPlate = [plates.rep_free_energy_density - h.sigma_bound[ALPHA, ALPHA_P] for h in temp3]
+        badBetaFPlate = []
+        for h in hArr:
+            aux = plates.rep_free_energy_density
+            aux2 = plates.at(h)
+            badBetaFPlate.append(aux - aux2.sigma_bound[ALPHA, ALPHA_P])
         with open('bad-plates-A_B-T%.1f-G%.1f.txt' % (T, beta_DeltaG0), 'w') as f:
             f.write('# h (nm)\tF_rep (kT/nm^2)\tF_att (kT/nm^2)\tF_plate (kT/nm^2)\n')
             for (h, betaF, betaFRep) in zip(hArr, badBetaFPlate, betaFRepPlate):
@@ -80,7 +87,7 @@ def main():
             for (h, betaF, betaFRep) in zip(hArr, badBetaFSpheres, betaFRepSpheres):
                 betaFAtt = betaF - betaFRep
                 f.write('%g\t%g\t%g\t%g\n' % (h / nm, betaFRep, betaFAtt, betaF))
-        Ncn = 201
+        Ncn = 401
         blurSigma = 3 * nm
         filtX = np.linspace(-3 * blurSigma, +3 * blurSigma, Ncn)
         filtDx = filtX[1] - filtX[0]

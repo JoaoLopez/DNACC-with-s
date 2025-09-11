@@ -47,8 +47,8 @@ def main():
     c1 = 24070.0
     c2 = 70.2964
     zr = 273.15
-    hArr = np.arange(1 * nm, 300 * nm, 0.05 * nm)
-    for T in np.linspace(20.0, 60.0, 81):
+    hArr = np.arange(1 * nm, 81 * nm, 0.05 * nm)
+    for T in np.linspace(15.0, 70.0, 98):
         beta_DeltaG0 = -(c1 / (zr + T) - c2)
         plates.beta_DeltaG0['alpha', 'alphap'] = beta_DeltaG0
         betaFPlate = []

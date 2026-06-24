@@ -13,7 +13,7 @@ def main():
     ALPHA = plates.add_tether_type(plate='upper', sticky_end='alpha')
     ALPHA_P = plates.add_tether_type(plate='lower', sticky_end='alphap')
     hArr = np.linspace(1 * nm, 40 * nm, 1000)
-    for S in np.arange(0.1, 1.01, 0.05):
+    for S in np.arange(0.1, 1.01, 0.08):
         sigma = 1 / (S * L) ** 2
         plates.tether_types[ALPHA]['sigma'] = sigma
         plates.tether_types[ALPHA_P]['sigma'] = sigma
@@ -32,7 +32,7 @@ def main():
                     betaFAtt = V - betaFRep
                     f.write('%.7g\t%.7g\t%.7g\t%.7g\n' % (h / L, betaFRep / (1 / L ** 2), betaFAtt / (1 / L ** 2), (betaFRep + betaFAtt) / (1 / L ** 2)))
             for R in np.linspace(4.0, 50.0, 30):
-                betaFSphere = calc_spheres_potential(hArr, betaFPlate, R * L)
+                betaFSphere = calc_spheres_potential(hArr, betaFPlate, R * L, func_globals=globals())
                 with open('spheres-R%.1f-S%0.2f-G%.1f.dat' % (R, S, betaDeltaG0), 'w') as f:
                     temp2 = '\t'
                     f.write(temp2.join(['h / L', '[ignore: F_rep (kT)]', '[ignore: F_att (kT)]', 'F_sphere (kT)']) + '\n')
